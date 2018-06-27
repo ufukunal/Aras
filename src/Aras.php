@@ -6,7 +6,8 @@ use SoapClient;
 use SOAPHeader;
 
 class Aras {
-  private $url = 'http://customerservicestest.araskargo.com.tr/arascargoservice/arascargoservice.asmx?op=SetOrder&wsdl';
+  private $sandbox_url = 'http://customerservicestest.araskargo.com.tr/arascargoservice/arascargoservice.asmx?op=SetOrder&wsdl';
+  private $url = 'http://customerws.araskargo.com.tr/arascargoservice.asmx?op=SetOrder&wsdl';
   private $client;
   private $conf;
   function __construct($conf){
@@ -16,7 +17,12 @@ class Aras {
 
     $this->conf = $conf;
 
-    $this->client = new SoapClient($this->url);
+    if(isset($this->conf['sandbox'])){
+      $this->client = new SoapClient($this->sandbox_url);
+    } else {
+      $this->client = new SoapClient($this->url);
+    }
+    
 
   }
 
@@ -24,10 +30,23 @@ class Aras {
   function CreateShipment($params){
 
     try {
+      
+      $data = [
+        'orderInfo' => [
+          'Order' => array_merge(
+            $params,
+            [
+              'UserName' => $this->conf['username'],
+              'Password' => $this->conf['password']
+            ]
+          ),
+          'userName' => $this->conf['username'],
+          'password' => $this->conf['password']
+        ]
+      ];
 
-      $data = array('orderInfo' => array('Order' => array_merge($params, array("pKullaniciAdi" => $this->conf['username'], "pSifre" => $this->conf['password']))));
       $CreateShipmentData = $this->client->SetOrder ($data);
-
+      
       if(isset($CreateShipmentData->SetOrderResult)){
         return $CreateShipmentData->SetOrderResult->OrderResultInfo;
       } else {
